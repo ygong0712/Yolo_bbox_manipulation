@@ -8,7 +8,7 @@ via Yolo_mark. See here for a more detailed explanation.
 To do a test run, try
 
 ```python
-python rotate.py -i group-airplanes.jpg -a 25
+python rotate.py
 ```
 
 For more detail, see [here](https://usmanr149.github.io/urmlblog/yolo/2020/03/05/rotate_yolo_bbox.html).
