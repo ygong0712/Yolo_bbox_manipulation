@@ -2,20 +2,23 @@ import numpy as np
 import cv2
 import os
 import argparse
+from PIL import Image
+import glob
+from random import *
 
 from helpers import *
 
 class yoloRotatebbox:
     def __init__(self, filename, image_ext, angle):
-        assert os.path.isfile(filename + image_ext)
-        assert os.path.isfile(filename + '.txt')
+        assert os.path.isfile('train.\\'+ filename + '.jpg')
+        assert os.path.isfile('labels.\\'+filename + '.txt')
 
         self.filename = filename
-        self.image_ext = image_ext
+        self.image_ext = '.jpg'
         self.angle = angle
 
         # Read image using cv2
-        self.image = cv2.imread(self.filename + self.image_ext, 1)
+        self.image = cv2.imread('train.\\' + self.filename + self.image_ext, 1)
 
         rotation_angle = self.angle * np.pi / 180
         self.rot_matrix = np.array(
@@ -25,7 +28,7 @@ class yoloRotatebbox:
 
         new_height, new_width = self.rotate_image().shape[:2]
 
-        f = open(self.filename + '.txt', 'r')
+        f = open('labels.\\'+self.filename + '.txt', 'r')
 
         f1 = f.readlines()
 
@@ -99,43 +102,37 @@ class yoloRotatebbox:
 
 if __name__ == "__main__":
 
-    # Create the parser
-    my_parser = argparse.ArgumentParser(description='What is the name of the image and the angle to do the rotation by?')
-    # Add the arguments
-    my_parser.add_argument('-i',
-                           metavar='image',
-                           type=str,
-                           help="The image needs to have extensions '.jpg' or '.png'.")
+    
 
-    my_parser.add_argument('-a',
-                           metavar='angle',
-                           type=int,
-                           help="The angle by which to do the counterclockwise rotation.")
+    for image_path in glob.glob('train/*.jpg'):
+        angle = randint(-30,30)
+        name = image_path.split('\\')[-1]
+        image_name = name.split('.')[0]
+        image_ext = '.'+name.split('.')[1]
 
-    # Execute the parse_args() method
-    args = my_parser.parse_args()
 
-    image_path = args.i
-    angle = args.a
+        # initiate the class
+        im = yoloRotatebbox(image_name, image_ext, angle)
+        bbox = im.rotateYolobbox()
+        image = im.rotate_image()
 
-    image_name = image_path.split('.')[0]
-    image_ext = '.'+image_path.split('.')[1]
+        # to write rotateed image to disk
+        cv2.imwrite('rotated.\\'+'rotated_'+image_name+'_' + str(angle) + '.jpg', image)
 
-    # initiate the class
-    im = yoloRotatebbox(image_name, image_ext, angle)
+        file_name = 'rlabels.\\' + 'rotated_'+image_name+'_' + str(angle) + '.txt'
+        if os.path.exists(file_name):
+            os.remove(file_name)
+        # to write the new rotated bboxes to file
+        for i in bbox:
+            with open(file_name, 'a') as fout:
+                fout.writelines(
+                    ' '.join(map(str, cvFormattoYolo(i, im.rotate_image().shape[0], im.rotate_image().shape[1]))) + '\n')
+    
 
-    bbox = im.rotateYolobbox()
-    image = im.rotate_image()
+    
 
-    # to write rotateed image to disk
-    cv2.imwrite('rotated_'+image_name+'_' + str(angle) + '.jpg', image)
+    
 
-    file_name = 'rotated_'+image_name+'_' + str(angle) + '.txt'
-    if os.path.exists(file_name):
-        os.remove(file_name)
+    
 
-    # to write the new rotated bboxes to file
-    for i in bbox:
-        with open(file_name, 'a') as fout:
-            fout.writelines(
-                ' '.join(map(str, cvFormattoYolo(i, im.rotate_image().shape[0], im.rotate_image().shape[1]))) + '\n')
+    
